@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Install the skill symlink and optional macOS five-minute updater."""
+"""Install the skill symlink and optional macOS daily updater."""
 import argparse
 import os
 from pathlib import Path
@@ -61,14 +61,14 @@ def main():
         plist.parent.mkdir(parents=True, exist_ok=True)
         python = str(Path(sys.executable).resolve())
         data = {'Label': LABEL, 'ProgramArguments': [python, str(runner), '--repo', str(repo),
-                '--state-dir', str(state)], 'RunAtLoad': True, 'StartInterval': 300,
+                '--state-dir', str(state)], 'RunAtLoad': True, 'StartInterval': 86400,
                 'StandardOutPath': str(state/'update.log'), 'StandardErrorPath': str(state/'update.log')}
         plist.write_bytes(plistlib.dumps(data))
         domain = f'gui/{os.getuid()}'
         subprocess.run(['launchctl', 'bootout', domain+'/'+LABEL], stdout=subprocess.DEVNULL,
                        stderr=subprocess.DEVNULL)
         subprocess.run(['launchctl', 'bootstrap', domain, str(plist)], check=True)
-        print('自动更新已启用：每 5 分钟检查一次，登录后补查。')
+        print('自动更新已启用：每天检查一次，登录后补查。')
     print('安装完成：' + str(link))
     print('版本：' + git(repo, 'rev-parse', '--short', 'HEAD'))
     print('使用 $design-team-review；未显示时重启 Codex。')

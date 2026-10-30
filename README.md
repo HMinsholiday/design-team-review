@@ -14,13 +14,13 @@ git clone https://github.com/HMinsholiday/design-team-review.git "$HOME/Library/
 python3 "$HOME/Library/Mobile Documents/com~apple~CloudDocs/🧬chatGPT/新项目/设计团队内部AI预评共享/scripts/install.py"
 ```
 
-也可以把本仓库链接发给 Codex，说：“请阅读 README，为我安装此 skill 并启用自动更新。”安装会启用每 5 分钟一次的本机后台检查。只下载源文件不会自动启用更新。
+也可以把本仓库链接发给 Codex，说：“请阅读 README，为我安装此 skill 并启用自动更新。”安装会启用每天一次的本机后台检查。只下载源文件不会自动启用更新。
 
 安装脚本不覆盖已有同名技能；遇到旧入口或独立副本时，先确认其内容，再迁移，避免同名 skill 被重复发现。安装成功后使用 `$design-team-review`；未出现时重启 Codex。
 
 ## 更新方式
 
-维护者更新 `design-team-review/`，提交并推送 `main`。同事电脑开机、登录且联网时，通常在 5 分钟左右拉取新版；不是秒级推送。休眠、离线或 GitHub 访问失败时等下次检查。Codex 若未发现更新，请重启；已开始的评审不保证中途切换版本。
+维护者更新 `design-team-review/`，提交并推送 `main`。同事电脑开机、登录且联网时，按每天一次的频率检查并拉取新版，登录时也会补查；不是实时推送。休眠、离线或 GitHub 访问失败时等下次检查。Codex 若未发现更新，请重启；已开始的评审不保证中途切换版本。
 
 自动更新只接受指定仓库 `main` 的快进更新。有本地修改、未跟踪文件、本地提交、错误分支或分叉时停止，不 reset、不 stash、不覆盖。同事建议只使用技能，通过反馈或 PR 提议修改。
 
@@ -77,3 +77,7 @@ python3 "$HOME/Library/Mobile Documents/com~apple~CloudDocs/🧬chatGPT/新项�
 ## Skill 名称更新
 
 调用名称统一为 `$design-team-review`，主目录为 `design-team-review/`。`design-pre-review` 仅为旧安装保留兼容软链接，勿重复安装两份。原安装入口在支持软链接的环境中会读到新 skill 名称；重新运行安装器可将同仓库旧入口迁移为新名称。独立副本不会被覆盖。后台服务和状态目录保留旧技术标识，避免重复启动更新任务。
+
+## 更新频率调整
+
+默认每天检查一次（间隔 86400 秒），登录后补查。此前安装了每 5 分钟检查的用户，需要先拉取仓库新版，再重新运行安装器，才能更新本机 LaunchAgent；仅 skill 文件同步不会改变旧定时任务。安装器会替换同名任务，不重复新增任务。
