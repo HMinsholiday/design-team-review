@@ -16,11 +16,11 @@ python3 "$HOME/Library/Mobile Documents/com~apple~CloudDocs/🧬chatGPT/新项�
 
 也可以把本仓库链接发给 Codex，说：“请阅读 README，为我安装此 skill 并启用自动更新。”安装会启用每 5 分钟一次的本机后台检查。只下载源文件不会自动启用更新。
 
-安装脚本不覆盖已有同名技能；遇到旧入口或独立副本时，先确认其内容，再迁移，避免同名 skill 被重复发现。安装成功后使用 `$design-pre-review`；未出现时重启 Codex。
+安装脚本不覆盖已有同名技能；遇到旧入口或独立副本时，先确认其内容，再迁移，避免同名 skill 被重复发现。安装成功后使用 `$design-team-review`；未出现时重启 Codex。
 
 ## 更新方式
 
-维护者更新 `design-pre-review/`，提交并推送 `main`。同事电脑开机、登录且联网时，通常在 5 分钟左右拉取新版；不是秒级推送。休眠、离线或 GitHub 访问失败时等下次检查。Codex 若未发现更新，请重启；已开始的评审不保证中途切换版本。
+维护者更新 `design-team-review/`，提交并推送 `main`。同事电脑开机、登录且联网时，通常在 5 分钟左右拉取新版；不是秒级推送。休眠、离线或 GitHub 访问失败时等下次检查。Codex 若未发现更新，请重启；已开始的评审不保证中途切换版本。
 
 自动更新只接受指定仓库 `main` 的快进更新。有本地修改、未跟踪文件、本地提交、错误分支或分叉时停止，不 reset、不 stash、不覆盖。同事建议只使用技能，通过反馈或 PR 提议修改。
 
@@ -49,7 +49,7 @@ launchctl bootout "gui/$(id -u)/com.designteam.design-pre-review-sync"
 
 向 Codex 发送 Figma 链接并说：
 
-> 用 $design-pre-review 评审这个页面，在独立图层里标注问题。文案简短，使用带底色的 P0/P1/P2/P3 标签，不改原稿。
+> 用 $design-team-review 评审这个页面，在独立图层里标注问题。文案简短，使用带底色的 P0/P1/P2/P3 标签，不改原稿。
 
 每次评审报告记录本次 skill 的 Git 提交版本，便于复核。工具没有读取本地 Git 的能力时标记“版本未知”，不编造版本号。
 
@@ -73,3 +73,7 @@ python3 "$HOME/Library/Mobile Documents/com~apple~CloudDocs/🧬chatGPT/新项�
 ```
 
 执行前确认没有本地修改；有修改时先保留并处理，不强制覆盖。新版更新器只兼容本仓库明确的旧地址，成功快进更新后迁移 origin，不接受其他仓库地址。自定义安装路径者使用实际路径和原安装参数。尚未安装者直接按上方新地址安装即可。
+
+## Skill 名称更新
+
+调用名称统一为 `$design-team-review`，主目录为 `design-team-review/`。`design-pre-review` 仅为旧安装保留兼容软链接，勿重复安装两份。原安装入口在支持软链接的环境中会读到新 skill 名称；重新运行安装器可将同仓库旧入口迁移为新名称。独立副本不会被覆盖。后台服务和状态目录保留旧技术标识，避免重复启动更新任务。

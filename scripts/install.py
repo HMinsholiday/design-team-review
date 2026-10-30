@@ -23,14 +23,20 @@ def main():
     if sys.platform != 'darwin' and not args.no_auto_update:
         parser.error('自动更新安装仅支持 macOS；其他系统请加 --no-auto-update')
     repo = args.repo_dir.expanduser().resolve()
-    link = args.skills_dir.expanduser().absolute()/'design-pre-review'
-    target = repo/'design-pre-review'
+    link = args.skills_dir.expanduser().absolute()/'design-team-review'
+    target = repo/'design-team-review'
     if os.path.lexists(link) and (not link.is_symlink() or link.resolve() != target):
         parser.error('已有同名技能，未覆盖：' + str(link))
-    # Prevent duplicate discovery through the older Codex location.
-    legacy = home/'.codex/skills/design-pre-review'
-    if legacy != link and os.path.lexists(legacy):
-        parser.error('发现旧安装入口，请先确认并迁移，未覆盖：' + str(legacy))
+    # Migrate only known symlinks into this checkout; preserve independent copies.
+    old_links = {args.skills_dir.expanduser().absolute()/'design-pre-review',
+                 home/'.agents/skills/design-pre-review', home/'.codex/skills/design-pre-review'}
+    removable = []
+    for legacy in old_links:
+        if os.path.lexists(legacy):
+            if legacy.is_symlink() and legacy.resolve() in {target, repo/'design-pre-review'}:
+                removable.append(legacy)
+            else:
+                parser.error('发现独立旧安装，请先确认迁移，未覆盖：' + str(legacy))
     if repo.exists():
         print(update(repo))
     else:
@@ -43,6 +49,8 @@ def main():
     link.parent.mkdir(parents=True, exist_ok=True)
     if not link.is_symlink():
         link.symlink_to(target, target_is_directory=True)
+    for legacy in removable:
+        legacy.unlink()
     if not args.no_auto_update:
         state = home/'.codex/design-pre-review-sync'
         state.mkdir(parents=True, exist_ok=True)
@@ -63,7 +71,7 @@ def main():
         print('自动更新已启用：每 5 分钟检查一次，登录后补查。')
     print('安装完成：' + str(link))
     print('版本：' + git(repo, 'rev-parse', '--short', 'HEAD'))
-    print('使用 $design-pre-review；未显示时重启 Codex。')
+    print('使用 $design-team-review；未显示时重启 Codex。')
 
 
 if __name__ == '__main__':
