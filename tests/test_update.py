@@ -4,6 +4,8 @@ from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+import json
+from unittest.mock import patch
 
 spec = importlib.util.spec_from_file_location('updater', Path(__file__).resolve().parents[1]/'scripts/update.py')
 u = importlib.util.module_from_spec(spec)
@@ -72,6 +74,47 @@ class UpdateTests(unittest.TestCase):
     def test_wrong_origin(self):
         with self.assertRaises(RuntimeError):
             u.update(self.client)
+
+
+class ScheduleTests(unittest.TestCase):
+    def test_new_interval_applies_after_sync_and_not_before_due(self):
+        base = Path(os.environ['DPR_TEST_ROOT'])
+        with tempfile.TemporaryDirectory(dir=base) as d:
+            repo = Path(d)
+            config = repo/'sync-config.json'
+            config.write_text(json.dumps({'check_interval_seconds': 86400}))
+            def sync(*args):
+                config.write_text(json.dumps({'check_interval_seconds': 3600}))
+                return 'updated'
+            with patch.object(u, 'update', side_effect=sync) as mocked:
+                u.scheduled_update(repo, repo, now=100)
+                self.assertEqual(json.loads((repo/'schedule.json').read_text())['next_check_at'], 3700)
+                self.assertIsNone(u.scheduled_update(repo, repo, now=3699))
+                self.assertEqual(mocked.call_count, 1)
+                u.scheduled_update(repo, repo, now=3700)
+                self.assertEqual(mocked.call_count, 2)
+
+    def test_invalid_config_never_calls_network(self):
+        base = Path(os.environ['DPR_TEST_ROOT'])
+        with tempfile.TemporaryDirectory(dir=base) as d:
+            repo = Path(d)
+            for value in [True, 0, '3600', 2592001]:
+                (repo/'sync-config.json').write_text(json.dumps({'check_interval_seconds': value}))
+                with patch.object(u, 'update') as mocked:
+                    with self.assertRaises(RuntimeError):
+                        u.scheduled_update(repo, repo, now=100)
+                    mocked.assert_not_called()
+
+    def test_failure_does_not_retry_each_minute(self):
+        base = Path(os.environ['DPR_TEST_ROOT'])
+        with tempfile.TemporaryDirectory(dir=base) as d:
+            repo = Path(d)
+            (repo/'sync-config.json').write_text(json.dumps({'check_interval_seconds': 86400}))
+            with patch.object(u, 'update', side_effect=OSError('offline')) as mocked:
+                with self.assertRaises(OSError):
+                    u.scheduled_update(repo, repo, now=100)
+                self.assertIsNone(u.scheduled_update(repo, repo, now=160))
+                self.assertEqual(mocked.call_count, 1)
 
 
 if __name__ == '__main__':

@@ -4,10 +4,9 @@ import argparse
 import os
 from pathlib import Path
 import plistlib
-import shutil
 import subprocess
 import sys
-from update import ORIGIN, git, update
+from update import ORIGIN, git, update, read_interval
 
 LABEL = 'com.designteam.design-pre-review-sync'
 
@@ -54,21 +53,25 @@ def main():
     if not args.no_auto_update:
         state = home/'.codex/design-pre-review-sync'
         state.mkdir(parents=True, exist_ok=True)
-        # Fixed machine-local launcher survives checkout updates.
+        interval = read_interval(repo)
+        # Stable launcher loads the updated checkout implementation on each wake.
         runner = state/'update.py'
-        shutil.copy2(repo/'scripts/update.py', runner)
+        runner.write_text('import runpy, sys\nfrom pathlib import Path\n'
+                          + 'repo = Path(' + repr(str(repo)) + ')\n'
+                          + 'sys.path.insert(0, str(repo / "scripts"))\n'
+                          + 'runpy.run_path(str(repo / "scripts/update.py"), run_name="__main__")\n')
         plist = home/'Library/LaunchAgents'/f'{LABEL}.plist'
         plist.parent.mkdir(parents=True, exist_ok=True)
         python = str(Path(sys.executable).resolve())
         data = {'Label': LABEL, 'ProgramArguments': [python, str(runner), '--repo', str(repo),
-                '--state-dir', str(state)], 'RunAtLoad': True, 'StartInterval': 86400,
+                '--state-dir', str(state), '--scheduled'], 'RunAtLoad': True, 'StartInterval': 60,
                 'StandardOutPath': str(state/'update.log'), 'StandardErrorPath': str(state/'update.log')}
         plist.write_bytes(plistlib.dumps(data))
         domain = f'gui/{os.getuid()}'
         subprocess.run(['launchctl', 'bootout', domain+'/'+LABEL], stdout=subprocess.DEVNULL,
                        stderr=subprocess.DEVNULL)
         subprocess.run(['launchctl', 'bootstrap', domain, str(plist)], check=True)
-        print('自动更新已启用：每天检查一次，登录后补查。')
+        print('自动更新已启用：按团队配置，每 ' + str(interval) + ' 秒检查远端。')
     print('安装完成：' + str(link))
     print('版本：' + git(repo, 'rev-parse', '--short', 'HEAD'))
     print('使用 $design-team-review；未显示时重启 Codex。')

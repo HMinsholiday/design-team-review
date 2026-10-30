@@ -3,6 +3,8 @@
 import argparse
 import fcntl
 import os
+import json
+import time
 from pathlib import Path
 import subprocess
 
@@ -39,11 +41,34 @@ def update(repo, expected_origin=ORIGIN):
     return ('已是最新版本 ' if before == target else '已更新到 ') + target[:12]
 
 
+def read_interval(repo):
+    value = json.loads((Path(repo)/'sync-config.json').read_text()).get('check_interval_seconds')
+    if type(value) is not int or not 60 <= value <= 2592000:
+        raise RuntimeError('check_interval_seconds 必须是 60 到 2592000 的整数')
+    return value
+
+
+def scheduled_update(repo, state_dir, expected_origin=ORIGIN, now=None):
+    now = time.time() if now is None else now
+    state_file = Path(state_dir)/'schedule.json'
+    interval = read_interval(repo)
+    state = json.loads(state_file.read_text()) if state_file.exists() else {}
+    if now < state.get('next_check_at', 0):
+        return None
+    # Record attempt before network access to avoid retrying every local tick offline.
+    state_file.write_text(json.dumps({'next_check_at': now + interval}))
+    result = update(repo, expected_origin)
+    interval = read_interval(repo)  # Newly downloaded team configuration.
+    state_file.write_text(json.dumps({'next_check_at': now + interval}))
+    return result + '；下次检查间隔 ' + str(interval) + ' 秒'
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--repo', required=True, type=Path)
     parser.add_argument('--state-dir', type=Path,
                         default=Path.home()/'.codex/design-pre-review-sync')
+    parser.add_argument('--scheduled', action='store_true')
     args = parser.parse_args()
     args.state_dir.mkdir(parents=True, exist_ok=True)
     with (args.state_dir/'update.lock').open('a') as lock:
@@ -52,8 +77,10 @@ def main():
         except BlockingIOError:
             return
         try:
-            print(update(args.repo), flush=True)
-        except (RuntimeError, subprocess.SubprocessError, OSError) as exc:
+            result = scheduled_update(args.repo, args.state_dir) if args.scheduled else update(args.repo)
+            if result:
+                print(result, flush=True)
+        except (RuntimeError, ValueError, subprocess.SubprocessError, OSError) as exc:
             print('更新未完成：' + str(exc), flush=True)
             raise SystemExit(1)
 
