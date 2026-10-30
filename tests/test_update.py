@@ -58,6 +58,17 @@ class UpdateTests(unittest.TestCase):
             u.update(self.client, str(self.remote))
         self.assertEqual(u.git(self.client, 'rev-parse', 'HEAD'), before)
 
+    def test_legacy_origin_migration(self):
+        renamed = self.base/'renamed.git'
+        renamed.symlink_to(self.remote, target_is_directory=True)
+        previous = u.ORIGIN, u.LEGACY_ORIGIN
+        try:
+            u.ORIGIN, u.LEGACY_ORIGIN = str(renamed), str(self.remote)
+            self.assertIn('已是最新', u.update(self.client, str(renamed)))
+            self.assertEqual(u.git(self.client, 'remote', 'get-url', 'origin'), str(renamed))
+        finally:
+            u.ORIGIN, u.LEGACY_ORIGIN = previous
+
     def test_wrong_origin(self):
         with self.assertRaises(RuntimeError):
             u.update(self.client)

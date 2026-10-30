@@ -6,7 +6,8 @@ import os
 from pathlib import Path
 import subprocess
 
-ORIGIN = 'https://github.com/HMinsholiday/-.git'
+ORIGIN = 'https://github.com/HMinsholiday/design-team-review.git'
+LEGACY_ORIGIN = 'https://github.com/HMinsholiday/-.git'
 
 
 def git(repo, *args):
@@ -17,20 +18,24 @@ def git(repo, *args):
 
 def update(repo, expected_origin=ORIGIN):
     repo = Path(repo).resolve()
-    if git(repo, 'remote', 'get-url', 'origin') != expected_origin:
+    actual_origin = git(repo, 'remote', 'get-url', 'origin')
+    legacy = expected_origin == ORIGIN and actual_origin == LEGACY_ORIGIN
+    if actual_origin != expected_origin and not legacy:
         raise RuntimeError('origin 不匹配，已停止更新')
     if git(repo, 'symbolic-ref', '--short', 'HEAD') != 'main':
         raise RuntimeError('当前不在 main 分支，已停止更新')
     if git(repo, 'status', '--porcelain', '--untracked-files=all'):
         raise RuntimeError('存在本地修改或未跟踪文件，已停止更新')
     before = git(repo, 'rev-parse', 'HEAD')
-    git(repo, 'fetch', '--no-tags', 'origin', 'refs/heads/main')
+    git(repo, 'fetch', '--no-tags', expected_origin, 'refs/heads/main')
     target = git(repo, 'rev-parse', 'FETCH_HEAD')
     # Reject both divergent history and unpublished local commits.
     git(repo, 'merge-base', '--is-ancestor', before, target)
     if git(repo, 'status', '--porcelain', '--untracked-files=all'):
         raise RuntimeError('拉取期间出现本地修改，已停止更新')
     git(repo, '-c', 'core.hooksPath=/dev/null', 'merge', '--ff-only', target)
+    if legacy:
+        git(repo, 'remote', 'set-url', 'origin', ORIGIN)
     return ('已是最新版本 ' if before == target else '已更新到 ') + target[:12]
 
 

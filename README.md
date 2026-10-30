@@ -10,7 +10,7 @@
 
 ```bash
 mkdir -p "$HOME/Library/Mobile Documents/com~apple~CloudDocs/🧬chatGPT/新项目"
-git clone https://github.com/HMinsholiday/-.git "$HOME/Library/Mobile Documents/com~apple~CloudDocs/🧬chatGPT/新项目/设计团队内部AI预评共享"
+git clone https://github.com/HMinsholiday/design-team-review.git "$HOME/Library/Mobile Documents/com~apple~CloudDocs/🧬chatGPT/新项目/设计团队内部AI预评共享"
 python3 "$HOME/Library/Mobile Documents/com~apple~CloudDocs/🧬chatGPT/新项目/设计团队内部AI预评共享/scripts/install.py"
 ```
 
@@ -60,3 +60,16 @@ launchctl bootout "gui/$(id -u)/com.designteam.design-pre-review-sync"
 ```bash
 DPR_TEST_ROOT="$HOME/Library/Mobile Documents/com~apple~CloudDocs/🧬chatGPT/临时工作/skill-sync-tests" PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -v
 ```
+
+## 仓库改名后的旧安装迁移
+
+新地址：https://github.com/HMinsholiday/design-team-review
+
+已安装的同事无需删除技能。旧更新器仍保存旧地址校验规则，请先更新源码，再重新运行安装器，一次性刷新远程地址和本机更新器：
+
+```bash
+git -C "$HOME/Library/Mobile Documents/com~apple~CloudDocs/🧬chatGPT/新项目/设计团队内部AI预评共享" pull --ff-only https://github.com/HMinsholiday/design-team-review.git main
+python3 "$HOME/Library/Mobile Documents/com~apple~CloudDocs/🧬chatGPT/新项目/设计团队内部AI预评共享/scripts/install.py"
+```
+
+执行前确认没有本地修改；有修改时先保留并处理，不强制覆盖。新版更新器只兼容本仓库明确的旧地址，成功快进更新后迁移 origin，不接受其他仓库地址。自定义安装路径者使用实际路径和原安装参数。尚未安装者直接按上方新地址安装即可。
